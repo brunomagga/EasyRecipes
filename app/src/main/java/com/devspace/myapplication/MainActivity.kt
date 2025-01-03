@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,38 +47,13 @@ class MainActivity : ComponentActivity() {
         setContent {
             EasyRecipesTheme {
                 var randomRecipes by remember { mutableStateOf<List<RecipesDto>>(emptyList()) }
-
-
-                val apiService = RetrofitClient.retrofitInstance.create(ApiService::class.java)
-                val callRandom = apiService.getRandom()
-
-
-
-                callRandom.enqueue(object : Callback<RecipesResponse> {
-                    override fun onResponse(
-                        call: Call<RecipesResponse>,
-                        response: Response<RecipesResponse>
-                    ) {
-                        if (response.isSuccessful) {
-                            Log.d("Response" , "error.message ${response}")
-                            val recipes = response.body()?.results
-                            if (recipes != null) {
-                                randomRecipes = recipes
-                            }
-
-                        } else {
-                            Log.d("MainActivity", "Request Error ${response.errorBody()}")
-                        }
+                LaunchedEffect(Unit) {
+                    fietchRandomRecipes { recipes ->
+                        randomRecipes = recipes
                     }
+                }
 
-                    override fun onFailure(call: Call<RecipesResponse>, t: Throwable) {
-                        Log.d("MainActivity", "Network Error ${t.message}")
-                    }
-
-                })
-
-
-                // A surface container using the 'background' color from the theme
+            // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -110,7 +86,36 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-}
+
+    private fun fietchRandomRecipes(onResult:(List<RecipesDto>)->Unit){
+            val apiService = RetrofitClient.retrofitInstance.create(ApiService::class.java)
+            val callRandom = apiService.getRandom()
+
+            callRandom.enqueue(object : Callback<RecipesResponse> {
+                override fun onResponse(
+                    call: Call<RecipesResponse>,
+                    response: Response<RecipesResponse>
+                ) {
+                    if (response.isSuccessful) {
+                        Log.d("Response" , "error.message ${response}")
+                        val recipes = response.body()?.results?: emptyList()
+                        onResult(recipes)
+
+                    } else {
+                        Log.d("MainActivity", "Request Error ${response.errorBody()}")
+                    }
+                }
+
+                override fun onFailure(call: Call<RecipesResponse>, t: Throwable) {
+                    Log.d("MainActivity", "Network Error ${t.message}")
+                }
+
+            })
+
+
+        }
+    }
+
 
 @Composable
 fun RecipeSession(
@@ -140,9 +145,10 @@ fun RecipesList(
     onClick: (RecipesDto) -> Unit
 ) {
     LazyColumn {
-        items(recipeList) {
+        items(recipeList) {recipe ->
+            Log.d("MainActivity", "${recipe.title},imagem ${recipe.posterFullPath}")
             RecipeItem(
-                recipesDto = it,
+                recipesDto = recipe,
                 onClick = onClick
             )
         }
@@ -158,16 +164,19 @@ fun RecipeItem(
         modifier = Modifier
             .width(IntrinsicSize.Min)
             .clickable {
-            onClick.invoke(recipesDto)
-        }
+                onClick.invoke(recipesDto)
+            }
     ) {
+        val imageUrl = recipesDto.posterFullPath?:"https://spoonacular.com/recipeImages/green-beans-or-string-beans.jpg"
+        Log.d("MainActivity", "url_image: $imageUrl")
         AsyncImage(
             modifier = Modifier
                 .padding(16.dp)
+                .fillMaxWidth()
                 .width(150.dp)
                 .height(200.dp),
+            model = imageUrl,
             contentScale = ContentScale.Crop,
-            model = recipesDto.posterFullPath,
             contentDescription = "${recipesDto.title} Poster Image"
         )
         Spacer(modifier = Modifier.size(4.dp))

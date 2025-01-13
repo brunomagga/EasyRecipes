@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -28,6 +29,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -53,7 +55,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-            // A surface container using the 'background' color from the theme
+                // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -77,7 +79,7 @@ class MainActivity : ComponentActivity() {
 
                         RecipeSession(
                             label = "Random Recipes",
-                            recipeList = randomRecipes,
+                            recipes = randomRecipes,
                             onClick = { movieClicked ->
                             }
                         )
@@ -87,109 +89,97 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun fietchRandomRecipes(onResult:(List<RecipesDto>)->Unit){
-            val apiService = RetrofitClient.retrofitInstance.create(ApiService::class.java)
-            val callRandom = apiService.getRandom()
+    private fun fietchRandomRecipes(onResult: (List<RecipesDto>) -> Unit) {
+        val apiService = RetrofitClient.retrofitInstance.create(ApiService::class.java)
+        val callRandom = apiService.getRandom()
 
-            callRandom.enqueue(object : Callback<RecipesResponse> {
-                override fun onResponse(
-                    call: Call<RecipesResponse>,
-                    response: Response<RecipesResponse>
-                ) {
-                    if (response.isSuccessful) {
-                        Log.d("Response" , "error.message ${response}")
-                        val recipes = response.body()?.results?: emptyList()
-                        onResult(recipes)
+        callRandom.enqueue(object : Callback<RecipesResponse> {
+            override fun onResponse(
+                call: Call<RecipesResponse>,
+                response: Response<RecipesResponse>
+            ) {
+                if (response.isSuccessful) {
+                    Log.d("Response", "error.message ${response}")
+                    val recipes = response.body()?.recipes ?: emptyList()
+                    onResult(recipes)
 
-                    } else {
-                        Log.d("MainActivity", "Request Error ${response.errorBody()}")
-                    }
+                } else {
+                    Log.d("MainActivity", "Request Error ${response.errorBody()}")
                 }
+            }
 
-                override fun onFailure(call: Call<RecipesResponse>, t: Throwable) {
-                    Log.d("MainActivity", "Network Error ${t.message}")
-                }
+            override fun onFailure(call: Call<RecipesResponse>, t: Throwable) {
+                Log.d("MainActivity", "Network Error ${t.message}")
+            }
 
-            })
-
-
-        }
+        })
     }
+}
 
 
 @Composable
 fun RecipeSession(
     label: String,
-    recipeList: List<RecipesDto>,
+    recipes: List<RecipesDto>,
     onClick: (RecipesDto) -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp)
-    ) {
-        Text(
-            fontSize = 24.sp,
-            text = label,
-            fontWeight = FontWeight.SemiBold
-        )
-        Spacer(modifier = Modifier.size(8.dp))
-        RecipesList(recipeList = recipeList, onClick = onClick)
-
-    }
+    Text(
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp),
+        fontSize = 18.sp,
+        fontWeight = FontWeight.Bold,
+        text = label
+    )
+    RecipeList(
+        recipes = recipes,
+        onClick = onClick
+    )
 }
 
 @Composable
-fun RecipesList(
-    recipeList: List<RecipesDto>,
+private fun RecipeList(
+    modifier: Modifier = Modifier,
+    recipes: List<RecipesDto>,
     onClick: (RecipesDto) -> Unit
 ) {
-    LazyColumn {
-        items(recipeList) {recipe ->
-            Log.d("MainActivity", "${recipe.title},imagem ${recipe.posterFullPath}")
-            RecipeItem(
-                recipesDto = recipe,
-                onClick = onClick
-            )
+    LazyColumn(
+        modifier = modifier.padding(16.dp)
+    ) {
+        items(recipes) {
+            RecipeItem(recipe = it, onClick = onClick)
         }
     }
 }
 
 @Composable
 fun RecipeItem(
-    recipesDto: RecipesDto,
+    recipe: RecipesDto,
     onClick: (RecipesDto) -> Unit
 ) {
     Column(
         modifier = Modifier
-            .width(IntrinsicSize.Min)
+            .fillMaxWidth()
+            .padding(8.dp)
             .clickable {
-                onClick.invoke(recipesDto)
+                onClick.invoke(recipe)
             }
     ) {
-        val imageUrl = recipesDto.posterFullPath?:"https://spoonacular.com/recipeImages/green-beans-or-string-beans.jpg"
-        Log.d("MainActivity", "url_image: $imageUrl")
         AsyncImage(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth()
-                .width(150.dp)
-                .height(200.dp),
-            model = imageUrl,
             contentScale = ContentScale.Crop,
-            contentDescription = "${recipesDto.title} Poster Image"
+            modifier = Modifier
+                .clip(RoundedCornerShape(topEnd = 8.dp, topStart = 8.dp))
+                .fillMaxWidth()
+                .height(150.dp),
+            model = recipe.image, contentDescription = "${recipe.title} Image"
         )
-        Spacer(modifier = Modifier.size(4.dp))
+
+        Spacer(modifier = Modifier.size(8.dp))
         Text(
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(8.dp),
+            fontSize = 18.sp,
             fontWeight = FontWeight.SemiBold,
-            text = recipesDto.title
+            text = recipe.title
         )
-        Text(
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            text = recipesDto.summary
-        )
+
+
     }
 }

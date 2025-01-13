@@ -1,16 +1,13 @@
 package com.devspace.myapplication
 
 import com.google.gson.annotations.SerializedName
+import kotlinx.serialization.Serializable
 
-data class RecipesDto (
+@Serializable
+data class RecipesDto(
     val id: Int,
     val title: String,
-    val image: String?,
+    val image: String,
     val summary: String
-){
-    val posterFullPath: String?
-        get() = image?.let {"https://spoonacular.com/recipeImages/$it"
-        }
-
-}
+)
 

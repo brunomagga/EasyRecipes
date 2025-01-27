@@ -1,6 +1,6 @@
-package com.devspace.myapplication
+package com.devspace.myapplication.List.presentation.ui
 
-import android.util.Log
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -14,13 +14,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
@@ -30,51 +30,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import com.devspace.myapplication.List.presentation.RecipesListViewModel
+import com.devspace.myapplication.common.model.RecipesDto
+import com.devspace.myapplication.Search.presentation.SearchScreen
+
 
 @Composable
-fun RecipesListScreen(navController: NavHostController) {
-    var randomRecipes by remember { mutableStateOf<List<RecipesDto>>(emptyList()) }
-
-
-
-    LaunchedEffect(Unit) {
-        val apiService = RetrofitClient.retrofitInstance.create(ApiService::class.java)
-        val callRandom = apiService.getRandom()
-
-        callRandom.enqueue(object : Callback<RecipesResponse> {
-            override fun onResponse(
-                call: Call<RecipesResponse>,
-                response: Response<RecipesResponse>
-            ) {
-                if (response.isSuccessful) {
-                    Log.d("Response", "error.message ${response}")
-                    randomRecipes = response.body()?.recipes ?: emptyList()
-                    //onResult(recipes)
-
-                } else {
-                    Log.d("MainActivity", "Request Error ${response.errorBody()}")
-                }
-            }
-
-            override fun onFailure(call: Call<RecipesResponse>, t: Throwable) {
-                Log.d("MainActivity", "Network Error ${t.message}")
-            }
-
-
-        })
-
-
-    }
-
+fun RecipesListScreen(
+    navController: NavHostController,
+    viewModel: RecipesListViewModel
+) {
+    val randomRecipes by viewModel.uiGetRecipes.collectAsState()
 
     MainScreenContent(
         getRandom = randomRecipes,
         onSearchClicked = { query ->
             val tempCleanQuery = query.trim()
-            if(tempCleanQuery.isNotEmpty()){
+            if (tempCleanQuery.isNotEmpty()) {
                 navController.navigate(route = "search_recipes/$tempCleanQuery")
             }
         },
@@ -90,7 +62,7 @@ fun RecipesListScreen(navController: NavHostController) {
 fun MainScreenContent(
     getRandom: List<RecipesDto>,
     onSearchClicked: (String) -> Unit,
-    onClick: (RecipesDto) ->Unit
+    onClick: (RecipesDto) -> Unit
 
 ) {
     Column(
@@ -99,15 +71,6 @@ fun MainScreenContent(
 
     ) {
 
-        var query by remember { mutableStateOf("") }
-        SearchSession(
-            label = "Find best recipes for cooking",
-            query = query,
-            onValueChanged = { newValue ->
-                query = newValue
-            },
-            onSearchClicked = onSearchClicked
-        )
 
         Text(
             modifier = Modifier.padding(8.dp),
@@ -116,7 +79,10 @@ fun MainScreenContent(
             text = "EasyRecipes"
         )
 
+        SearchScreen()
 
+
+        Spacer(modifier = Modifier.padding(10.dp))
 
         RecipeSession(
             label = "Random Recipes",
@@ -128,25 +94,21 @@ fun MainScreenContent(
 }
 
 @Composable
-fun SearchSession(
-    label: String,
+fun SearchBar(
     query: String,
-    onValueChanged: (String) -> Unit,
-    onSearchClicked: (String) -> Unit
+    onQueryChange: (String) -> Unit,
+    placeholder: String = "Search..."
 ) {
-    Text(
-        modifier = Modifier.padding(start = 16.dp , end = 16.dp, top = 16.dp),
-        fontSize = 18.sp,
-        fontWeight = FontWeight.SemiBold,
-        text = label
-    )
-    ERSearchBar(
-        query = query,
-        placeHolder = "Search recipes",
-        onValueChange = onValueChanged,
-        onSearchClicked = {
-            onSearchClicked.invoke(query)
-        }
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        label = { Text(placeholder) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        keyboardActions = KeyboardActions(),
+
+        singleLine = true
     )
 
 }

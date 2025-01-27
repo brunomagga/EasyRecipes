@@ -1,6 +1,5 @@
-package com.devspace.myapplication
+package com.devspace.myapplication.detail.presentation
 
-import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,10 +12,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -25,35 +22,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
+import com.devspace.myapplication.common.model.RecipesDto
 import com.devspace.myapplication.ui.theme.EasyRecipesTheme
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 
 
 @Composable
 fun RecipesDetailScreen(
     recipeId: String,
-     navHostController: NavHostController) {
-    var recipeDto by remember { mutableStateOf<RecipesDto?>(null) }
-
-    val apiService = RetrofitClient.retrofitInstance.create(ApiService::class.java)
-    apiService.getRecipesInformation(recipeId).enqueue(
-        object : Callback<RecipesDto> {
-            override fun onResponse(call: Call<RecipesDto>, response: Response<RecipesDto>) {
-                if (response.isSuccessful) {
-                    recipeDto = response.body()
-                } else {
-                    Log.d("MainActivity", "Request Error ${response.errorBody()}")
-                }
-            }
-
-            override fun onFailure(call: Call<RecipesDto>, t: Throwable) {
-                Log.d("MainActivity", "Network Error ${t.message}")
-            }
-
-        }
-    )
+    navHostController: NavHostController,
+    detailViewModel: RecipesDetailViewModel
+) {
+    val recipeDto by detailViewModel.uiDetail.collectAsState()
+    detailViewModel.fetchRecipeDetail(recipeId)
 
     recipeDto?.let {
         Column(
@@ -64,6 +44,7 @@ fun RecipesDetailScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = {
+                    detailViewModel.cleanRecipesId()
                     navHostController.popBackStack()
                 }) {
                     Icon(

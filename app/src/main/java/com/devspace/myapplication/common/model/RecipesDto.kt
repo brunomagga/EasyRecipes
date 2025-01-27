@@ -1,6 +1,5 @@
-package com.devspace.myapplication
+package com.devspace.myapplication.common.model
 
-import com.google.gson.annotations.SerializedName
 import kotlinx.serialization.Serializable
 
 @Serializable
